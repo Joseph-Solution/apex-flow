@@ -2,10 +2,11 @@
   "name": "apex-flow-frontend",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.2.19",
   "scripts": {
-    "dev": "next dev -p 3333",
+    "dev": "dotenv -e ../.env -- next dev -p $FRONTEND_PORT",
     "build": "next build",
-    "start": "next start -p 3333",
+    "start": "dotenv -e ../.env -- next start -p $FRONTEND_PORT",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -45,6 +46,7 @@
     "jest": "^29.7.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/jest-dom": "^6.1.4",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "dotenv-cli": "^7.3.0"
   }
 }
