@@ -1,5 +1,5 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+# Use Node.js version 22 with Alpine 3.22
+FROM node:22-alpine3.22
 
 # Build arguments for user configuration
 ARG UID=1000
@@ -37,12 +37,9 @@ RUN bun install
 # Copy source code
 COPY --chown=${UID}:${GID} . .
 
-# Expose port
-EXPOSE 3001
-
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
+  CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Start the application
+# Default command (can be overridden by docker-compose)
 CMD ["bun", "run", "dev"]

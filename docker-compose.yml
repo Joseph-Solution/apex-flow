@@ -3,14 +3,14 @@ version: '3.8'
 services:
   # PostgreSQL Database
   database:
-    image: postgres:15-alpine
+    image: postgres:16-alpine3.22
     container_name: apex-flow-db
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -29,18 +29,19 @@ services:
         UNAME: ${UNAME}
         GNAME: ${GNAME}
     container_name: apex-flow-backend
+    command: ["bun", "run", "dev"]
     environment:
       - NODE_ENV=${NODE_ENV}
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-      - PORT=${API_PORT}
+      - PORT=${BACKEND_PORT}
       - BCRYPT_ROUNDS=${BCRYPT_ROUNDS}
       - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
       - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS}
       - CORS_ORIGIN=${CORS_ORIGIN}
     ports:
-      - "${API_PORT}:${API_PORT}"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -62,11 +63,12 @@ services:
         UNAME: ${UNAME}
         GNAME: ${GNAME}
     container_name: apex-flow-frontend
+    command: ["bun", "run", "dev"]
     environment:
       - NODE_ENV=${NODE_ENV}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     ports:
-      - "${PORT}:${PORT}"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     volumes:
       - ./frontend:/app
       - /app/node_modules
