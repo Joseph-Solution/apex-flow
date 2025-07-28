@@ -45,3 +45,5 @@ interaction/
 test_output.txt
 test.py
 
+# Docs
+.kiro/
