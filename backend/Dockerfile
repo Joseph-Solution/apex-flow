@@ -37,9 +37,5 @@ RUN bun install
 # Copy source code
 COPY --chown=${UID}:${GID} . .
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:${PORT}/health || exit 1
-
 # Default command (can be overridden by docker-compose)
 CMD ["bun", "run", "dev"]
