@@ -16,6 +16,9 @@ RUN delgroup dialout || true
 RUN addgroup -g ${GID} ${GNAME}
 RUN adduser -D -u ${UID} -G ${GNAME} -s /bin/sh ${UNAME}
 
+# Set HOME environment variable
+ENV HOME /home/${UNAME}
+
 # Install bun globally
 RUN npm install -g bun
 
