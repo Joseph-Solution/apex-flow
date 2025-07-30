@@ -1,6 +1,36 @@
-version: '3.8'
-
 services:
+  # Backend dependency sync
+  backend-deps:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        UID: ${UID}
+        GID: ${GID}
+        UNAME: ${UNAME}
+        GNAME: ${GNAME}
+    container_name: apex-flow-backend-deps
+    volumes:
+      - backend_node_modules:/tmp/sync
+    command:
+      ["sh", "-c", "cp -r /app/node_modules/* /tmp/sync/ 2>/dev/null || true"]
+
+  # Frontend dependency sync
+  frontend-deps:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        UID: ${UID}
+        GID: ${GID}
+        UNAME: ${UNAME}
+        GNAME: ${GNAME}
+    container_name: apex-flow-frontend-deps
+    volumes:
+      - frontend_node_modules:/tmp/sync
+    command:
+      ["sh", "-c", "cp -r /app/node_modules/* /tmp/sync/ 2>/dev/null || true"]
+
   # PostgreSQL Database
   database:
     image: postgres:16-alpine3.22
@@ -10,7 +40,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${DB_PORT}:5432"  # local_port:container_port
+      - "${DB_PORT}:5432" # local_port:container_port
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -29,7 +59,7 @@ services:
         UNAME: ${UNAME}
         GNAME: ${GNAME}
     container_name: apex-flow-backend
-    command: ["bun", "run", "dev"]
+    command: ["bun", "--bun", "run", "dev"]
     environment:
       - NODE_ENV=${NODE_ENV}
       - DATABASE_URL=${DATABASE_URL}
@@ -44,9 +74,10 @@ services:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     volumes:
       - ./backend:/app
-      - /app/node_modules
+      - backend_node_modules:/app/node_modules
     depends_on:
       - database
+      - backend-deps
     networks:
       - apex-network
     restart: unless-stopped
@@ -63,18 +94,20 @@ services:
         UNAME: ${UNAME}
         GNAME: ${GNAME}
     container_name: apex-flow-frontend
-    command: ["bun", "run", "dev"]
+    command: ["bun", "--bun", "next", "dev", "-p", "3000"]
     environment:
       - NODE_ENV=${NODE_ENV}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - FRONTEND_PORT=${FRONTEND_PORT}
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - frontend_node_modules:/app/node_modules
+      - frontend_next_cache:/app/.next
     depends_on:
       - backend
+      - frontend-deps
     networks:
       - apex-network
     restart: unless-stopped
@@ -82,6 +115,9 @@ services:
 
 volumes:
   postgres_data:
+  backend_node_modules:
+  frontend_node_modules:
+  frontend_next_cache:
 
 networks:
   apex-network:

@@ -4,9 +4,9 @@
   "private": true,
   "packageManager": "bun@1.2.19",
   "scripts": {
-    "dev": "dotenv -e ../.env -- next dev -p $FRONTEND_PORT",
+    "dev": "bun --bun next dev -p 3000",
     "build": "next build",
-    "start": "dotenv -e ../.env -- next start -p $FRONTEND_PORT",
+    "start": "next start -p $FRONTEND_PORT",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
