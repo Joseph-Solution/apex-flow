@@ -94,11 +94,11 @@ services:
         UNAME: ${UNAME}
         GNAME: ${GNAME}
     container_name: apex-flow-frontend
-    command: ["bun", "--bun", "next", "dev", "-p", "3000"]
+    command: ["bun", "--bun", "next", "dev"]
     environment:
       - NODE_ENV=${NODE_ENV}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - FRONTEND_PORT=${FRONTEND_PORT}
+      - PORT=${FRONTEND_PORT}
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     volumes:
