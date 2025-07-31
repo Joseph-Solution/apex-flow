@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './db/connection';
+import authRoutes from './routes/auth';
 
 // Load environment variables
 dotenv.config();
@@ -49,14 +50,25 @@ app.get('/health', async (_req, res) => {
   });
 });
 
-// API routes placeholder
+// API routes
+app.use('/api/auth', authRoutes);
+
+// API info endpoint
 app.get('/api', (_req, res) => {
   res.status(200).json({
     message: 'Apex Flow API is ready',
     version: '1.0.0',
     endpoints: {
       health: '/health',
-      api: '/api'
+      api: '/api',
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        changePassword: 'POST /api/auth/change-password',
+        verifyEmail: 'POST /api/auth/verify-email',
+        requestPasswordReset: 'POST /api/auth/request-password-reset',
+        resetPassword: 'POST /api/auth/reset-password'
+      }
     }
   });
 });
