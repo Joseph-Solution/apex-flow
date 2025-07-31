@@ -35,10 +35,16 @@ USER ${UID}:${GID}
 COPY --chown=${UID}:${GID} package*.json bun.lockb* ./
 
 # Install dependencies
-RUN bun install
+RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY --chown=${UID}:${GID} . .
 
+# Ensure dependencies are available (reinstall if needed)
+RUN bun install
+
+# Make startup script executable
+RUN chmod +x scripts/startup.sh
+
 # Default command (can be overridden by docker-compose)
-CMD ["bun", "run", "dev"]
+CMD ["./scripts/startup.sh", "bun", "run", "dev"]

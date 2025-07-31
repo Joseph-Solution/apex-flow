@@ -5,6 +5,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { checkDatabaseConnection } from './db/connection';
 
 // Load environment variables
 dotenv.config();
@@ -34,10 +35,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'Apex Flow Backend is running successfully!',
+app.get('/health', async (_req, res) => {
+  const dbConnected = await checkDatabaseConnection();
+  
+  res.status(dbConnected ? 200 : 503).json({
+    status: dbConnected ? 'OK' : 'ERROR',
+    message: dbConnected 
+      ? 'Apex Flow Backend is running successfully!' 
+      : 'Database connection failed',
+    database: dbConnected ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString(),
     environment: process.env['NODE_ENV'] || 'development'
   });

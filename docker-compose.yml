@@ -59,7 +59,7 @@ services:
         UNAME: ${UNAME}
         GNAME: ${GNAME}
     container_name: apex-flow-backend
-    command: ["bun", "--bun", "run", "dev"]
+    command: ["./scripts/startup.sh", "bun", "--bun", "run", "dev"]
     environment:
       - NODE_ENV=${NODE_ENV}
       - DATABASE_URL=${DATABASE_URL}
