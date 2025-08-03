@@ -40,6 +40,23 @@ async function createTables() {
 
     console.log('✅ Users table created');
 
+    // Create refresh tokens table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token VARCHAR(500) NOT NULL UNIQUE,
+        expires_at TIMESTAMP NOT NULL,
+        is_revoked BOOLEAN DEFAULT false NOT NULL,
+        user_agent VARCHAR(500),
+        ip_address VARCHAR(45),
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+    `);
+
+    console.log('✅ Refresh tokens table created');
+
     // Create basic tables for now - we can expand later
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS achievements (

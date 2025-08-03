@@ -1,5 +1,6 @@
 // Export all tables
 export * from './users';
+export * from './refreshTokens';
 export * from './tasks';
 export * from './habits';
 export * from './goals';
@@ -15,6 +16,7 @@ export { notificationsRelations, userNotificationPreferencesRelations } from './
 
 // Import all tables for schema object
 import { users } from './users';
+import { refreshTokens } from './refreshTokens';
 import { tasks } from './tasks';
 import { habits, habitCompletions } from './habits';
 import { goals, milestones, goalUpdates } from './goals';
@@ -25,6 +27,7 @@ import { notifications, notificationTemplates, userNotificationPreferences } fro
 export const schema = {
   // User management
   users,
+  refreshTokens,
   
   // Task management
   tasks,

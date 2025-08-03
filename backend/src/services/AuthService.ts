@@ -1,4 +1,6 @@
 import { UserRepository } from '../repositories/UserRepository';
+import { RefreshTokenRepository } from '../repositories/RefreshTokenRepository';
+import { JwtService, TokenPair } from './JwtService';
 import { 
   hashPassword, 
   comparePassword, 
@@ -22,9 +24,13 @@ import {
 
 export class AuthService {
   private userRepository: UserRepository;
+  private refreshTokenRepository: RefreshTokenRepository;
+  private jwtService: JwtService;
 
   constructor() {
     this.userRepository = new UserRepository();
+    this.refreshTokenRepository = new RefreshTokenRepository();
+    this.jwtService = new JwtService();
   }
 
   /**
@@ -111,11 +117,12 @@ export class AuthService {
   }
 
   /**
-   * Login user
+   * Login user with JWT tokens
    */
-  async login(loginData: LoginUserRequest): Promise<{
+  async login(loginData: LoginUserRequest, userAgent?: string, ipAddress?: string): Promise<{
     success: boolean;
     user?: PublicUser;
+    tokens?: TokenPair;
     errors?: string[];
   }> {
     try {
@@ -156,6 +163,21 @@ export class AuthService {
         };
       }
 
+      // Generate JWT tokens
+      const tokens = this.jwtService.generateTokenPair(user);
+
+      // Store refresh token in database
+      const expiresAt = new Date();
+      expiresAt.setTime(expiresAt.getTime() + (tokens.refreshExpiresIn * 1000));
+      
+      await this.refreshTokenRepository.create({
+        userId: user.id,
+        token: tokens.refreshToken,
+        expiresAt,
+        userAgent: userAgent || null,
+        ipAddress: ipAddress || null
+      });
+
       // Update last login timestamp
       await this.userRepository.updateLastLogin(user.id);
 
@@ -164,7 +186,8 @@ export class AuthService {
 
       return {
         success: true,
-        user: publicUser!
+        user: publicUser!,
+        tokens
       };
 
     } catch (error) {
@@ -397,6 +420,140 @@ export class AuthService {
   }
 
   /**
+   * Logout user by revoking refresh token
+   */
+  async logout(refreshToken: string): Promise<{
+    success: boolean;
+    errors?: string[];
+  }> {
+    try {
+      const isRevoked = await this.refreshTokenRepository.revokeToken(refreshToken);
+      
+      if (!isRevoked) {
+        return {
+          success: false,
+          errors: ['Invalid refresh token']
+        };
+      }
+
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('Logout error:', error);
+      return {
+        success: false,
+        errors: ['An error occurred during logout. Please try again.']
+      };
+    }
+  }
+
+  /**
+   * Logout from all devices by revoking all user's refresh tokens
+   */
+  async logoutAll(userId: string): Promise<{
+    success: boolean;
+    revokedCount?: number;
+    errors?: string[];
+  }> {
+    try {
+      const revokedCount = await this.refreshTokenRepository.revokeAllUserTokens(userId);
+
+      return {
+        success: true,
+        revokedCount
+      };
+    } catch (error) {
+      console.error('Logout all error:', error);
+      return {
+        success: false,
+        errors: ['An error occurred during logout. Please try again.']
+      };
+    }
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  async refreshToken(refreshToken: string): Promise<{
+    success: boolean;
+    accessToken?: string;
+    expiresIn?: number;
+    errors?: string[];
+  }> {
+    try {
+      // Check if refresh token exists and is valid
+      const isValid = await this.refreshTokenRepository.isTokenValid(refreshToken);
+      if (!isValid) {
+        return {
+          success: false,
+          errors: ['Invalid or expired refresh token']
+        };
+      }
+
+      // Generate new access token
+      const result = this.jwtService.refreshAccessToken(refreshToken);
+      if (!result) {
+        return {
+          success: false,
+          errors: ['Failed to generate new access token']
+        };
+      }
+
+      return {
+        success: true,
+        accessToken: result.accessToken,
+        expiresIn: result.expiresIn
+      };
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      return {
+        success: false,
+        errors: ['An error occurred while refreshing token. Please try again.']
+      };
+    }
+  }
+
+  /**
+   * Validate access token
+   */
+  async validateToken(accessToken: string): Promise<{
+    success: boolean;
+    user?: PublicUser;
+    errors?: string[];
+  }> {
+    try {
+      const decoded = this.jwtService.verifyAccessToken(accessToken);
+      if (!decoded) {
+        return {
+          success: false,
+          errors: ['Invalid or expired access token']
+        };
+      }
+
+      // Get user data
+      const user = await this.userRepository.getPublicUser(decoded.userId);
+      if (!user) {
+        return {
+          success: false,
+          errors: ['User not found']
+        };
+      }
+
+      return {
+        success: true,
+        user
+      };
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return {
+        success: false,
+        errors: ['An error occurred while validating token. Please try again.']
+      };
+    }
+  }
+
+  /**
    * Get user by ID
    */
   async getUserById(userId: string): Promise<PublicUser | null> {
@@ -405,6 +562,30 @@ export class AuthService {
     } catch (error) {
       console.error('Get user error:', error);
       return null;
+    }
+  }
+
+  /**
+   * Clean up expired and old revoked tokens
+   */
+  async cleanupTokens(): Promise<{
+    expiredCount: number;
+    revokedCount: number;
+  }> {
+    try {
+      const expiredCount = await this.refreshTokenRepository.deleteExpiredTokens();
+      const revokedCount = await this.refreshTokenRepository.deleteOldRevokedTokens(30);
+
+      return {
+        expiredCount,
+        revokedCount
+      };
+    } catch (error) {
+      console.error('Token cleanup error:', error);
+      return {
+        expiredCount: 0,
+        revokedCount: 0
+      };
     }
   }
 }

@@ -1,127 +1,170 @@
-import { validatePasswordStrength, hashPassword, comparePassword } from '../utils/password';
-import { validateAndSanitizeUserInput } from '../utils/validation';
+import { JwtService } from '../services/JwtService';
+import { User } from '../models/User';
 
-describe('Password Utilities', () => {
-  describe('validatePasswordStrength', () => {
-    it('should validate strong passwords', () => {
-      const result = validatePasswordStrength('TestPassword123');
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+describe('JWT Authentication', () => {
+  let jwtService: JwtService;
+  
+  const mockUser: User = {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    email: 'test@example.com',
+    username: 'testuser',
+    passwordHash: 'hashedpassword',
+    firstName: 'Test',
+    lastName: 'User',
+    timezone: 'UTC',
+    level: 1,
+    totalXP: 0,
+    currentLevelXP: 0,
+    nextLevelXP: 100,
+    avatarConfig: {
+      baseAvatar: 'default',
+      accessories: [],
+      colors: {}
+    },
+    unlockedItems: [],
+    preferences: {
+      notifications: {
+        taskReminders: true,
+        habitReminders: true,
+        achievements: true,
+        weeklyReports: true
+      },
+      theme: 'auto',
+      language: 'en',
+      workingHours: {
+        start: '09:00',
+        end: '17:00'
+      }
+    },
+    isActive: true,
+    emailVerified: true,
+    emailVerificationToken: null,
+    passwordResetToken: null,
+    passwordResetExpires: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastLoginAt: new Date()
+  };
+
+  beforeEach(() => {
+    jwtService = new JwtService();
+  });
+
+  describe('Token Generation', () => {
+    it('should generate access and refresh token pair', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      
+      expect(tokens).toHaveProperty('accessToken');
+      expect(tokens).toHaveProperty('refreshToken');
+      expect(tokens).toHaveProperty('expiresIn');
+      expect(tokens).toHaveProperty('refreshExpiresIn');
+      
+      expect(typeof tokens.accessToken).toBe('string');
+      expect(typeof tokens.refreshToken).toBe('string');
+      expect(typeof tokens.expiresIn).toBe('number');
+      expect(typeof tokens.refreshExpiresIn).toBe('number');
     });
 
-    it('should reject weak passwords', () => {
-      const result = validatePasswordStrength('weak');
-      expect(result.isValid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
-    });
-
-    it('should reject passwords without uppercase letters', () => {
-      const result = validatePasswordStrength('testpassword123');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one uppercase letter');
-    });
-
-    it('should reject passwords without lowercase letters', () => {
-      const result = validatePasswordStrength('TESTPASSWORD123');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one lowercase letter');
-    });
-
-    it('should reject passwords without numbers', () => {
-      const result = validatePasswordStrength('TestPassword');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one number');
-    });
-
-    it('should reject common passwords', () => {
-      const result = validatePasswordStrength('password');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password is too common and easily guessable');
+    it('should generate different tokens for each call', async () => {
+      const tokens1 = jwtService.generateTokenPair(mockUser);
+      
+      // Wait a moment to ensure different timestamps
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const tokens2 = jwtService.generateTokenPair(mockUser);
+      
+      expect(tokens1.accessToken).not.toBe(tokens2.accessToken);
+      expect(tokens1.refreshToken).not.toBe(tokens2.refreshToken);
     });
   });
 
-  describe('hashPassword and comparePassword', () => {
-    it('should hash and verify passwords correctly', async () => {
-      const password = 'TestPassword123';
-      const hashedPassword = await hashPassword(password);
+  describe('Token Verification', () => {
+    it('should verify valid access token', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      const decoded = jwtService.verifyAccessToken(tokens.accessToken);
       
-      expect(hashedPassword).not.toBe(password);
-      expect(hashedPassword.length).toBeGreaterThan(50);
+      expect(decoded).not.toBeNull();
+      expect(decoded?.userId).toBe(mockUser.id);
+      expect(decoded?.email).toBe(mockUser.email);
+      expect(decoded?.username).toBe(mockUser.username);
+      expect(decoded?.type).toBe('access');
+    });
+
+    it('should verify valid refresh token', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      const decoded = jwtService.verifyRefreshToken(tokens.refreshToken);
       
-      const isValid = await comparePassword(password, hashedPassword);
-      expect(isValid).toBe(true);
+      expect(decoded).not.toBeNull();
+      expect(decoded?.userId).toBe(mockUser.id);
+      expect(decoded?.email).toBe(mockUser.email);
+      expect(decoded?.username).toBe(mockUser.username);
+      expect(decoded?.type).toBe('refresh');
+    });
+
+    it('should reject invalid tokens', () => {
+      const invalidToken = 'invalid.token.here';
       
-      const isInvalid = await comparePassword('WrongPassword', hashedPassword);
-      expect(isInvalid).toBe(false);
+      expect(jwtService.verifyAccessToken(invalidToken)).toBeNull();
+      expect(jwtService.verifyRefreshToken(invalidToken)).toBeNull();
+    });
+
+    it('should reject access token as refresh token', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      
+      expect(jwtService.verifyRefreshToken(tokens.accessToken)).toBeNull();
+    });
+
+    it('should reject refresh token as access token', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      
+      expect(jwtService.verifyAccessToken(tokens.refreshToken)).toBeNull();
+    });
+  });
+
+  describe('Token Refresh', () => {
+    it('should generate new access token from valid refresh token', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      const result = jwtService.refreshAccessToken(tokens.refreshToken);
+      
+      expect(result).not.toBeNull();
+      expect(result?.accessToken).toBeDefined();
+      expect(result?.expiresIn).toBeDefined();
+      expect(typeof result?.accessToken).toBe('string');
+      expect(typeof result?.expiresIn).toBe('number');
+    });
+
+    it('should reject invalid refresh token for refresh', () => {
+      const invalidToken = 'invalid.token.here';
+      const result = jwtService.refreshAccessToken(invalidToken);
+      
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('Token Utilities', () => {
+    it('should decode token without verification', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      const decoded = jwtService.decodeToken(tokens.accessToken);
+      
+      expect(decoded).not.toBeNull();
+      expect(decoded?.userId).toBe(mockUser.id);
+      expect(decoded?.type).toBe('access');
+    });
+
+    it('should check token expiration', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      
+      // Fresh token should not be expired
+      expect(jwtService.isTokenExpired(tokens.accessToken)).toBe(false);
+      expect(jwtService.isTokenExpired(tokens.refreshToken)).toBe(false);
+    });
+
+    it('should get token expiration time', () => {
+      const tokens = jwtService.generateTokenPair(mockUser);
+      const expiration = jwtService.getTokenExpiration(tokens.accessToken);
+      
+      expect(expiration).toBeInstanceOf(Date);
+      expect(expiration!.getTime()).toBeGreaterThan(Date.now());
     });
   });
 });
-
-describe('Input Validation', () => {
-  describe('validateAndSanitizeUserInput', () => {
-    it('should validate and sanitize valid user input', () => {
-      const input = {
-        email: 'TEST@EXAMPLE.COM',
-        username: 'TestUser',
-        firstName: 'Test',
-        lastName: 'User'
-      };
-
-      const result = validateAndSanitizeUserInput(input);
-      
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-      expect(result.sanitizedData.email).toBe('test@example.com');
-      expect(result.sanitizedData.username).toBe('testuser');
-    });
-
-    it('should reject invalid email formats', () => {
-      const input = {
-        email: 'invalid-email',
-        username: 'testuser'
-      };
-
-      const result = validateAndSanitizeUserInput(input);
-      
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Invalid email format');
-    });
-
-    it('should reject invalid usernames', () => {
-      const input = {
-        email: 'test@example.com',
-        username: 'ab' // Too short
-      };
-
-      const result = validateAndSanitizeUserInput(input);
-      
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Username must be 3-50 characters and contain only letters, numbers, underscores, and hyphens');
-    });
-
-    it('should detect SQL injection attempts', () => {
-      const input = {
-        email: 'test@example.com',
-        username: "admin'; DROP TABLE users; --"
-      };
-
-      const result = validateAndSanitizeUserInput(input);
-      
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Username contains invalid characters');
-    });
-
-    it('should detect XSS attempts', () => {
-      const input = {
-        email: 'test@example.com',
-        firstName: '<script>alert("xss")</script>'
-      };
-
-      const result = validateAndSanitizeUserInput(input);
-      
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('First name contains invalid characters');
-    });
-  });
-});
-

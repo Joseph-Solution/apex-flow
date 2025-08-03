@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { AuthService } from '../services/AuthService';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { 
   registerUserSchema, 
   loginUserSchema, 
@@ -76,7 +77,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
 /**
  * POST /api/auth/login
- * Login user
+ * Login user with JWT tokens
  */
 router.post('/login', async (req: Request, res: Response) => {
   try {
@@ -98,8 +99,12 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
+    // Extract user agent and IP address for token tracking
+    const userAgent = req.headers['user-agent'];
+    const ipAddress = req.ip || req.connection.remoteAddress;
+
     // Login user
-    const result = await authService.login(validation.data);
+    const result = await authService.login(validation.data, userAgent, ipAddress);
 
     if (!result.success) {
       res.status(401).json({
@@ -113,11 +118,12 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    // Return success response
+    // Return success response with tokens
     res.status(200).json({
       success: true,
       data: {
         user: result.user,
+        tokens: result.tokens,
         message: 'Login successful'
       },
       timestamp: new Date().toISOString()
@@ -140,22 +146,9 @@ router.post('/login', async (req: Request, res: Response) => {
  * POST /api/auth/change-password
  * Change user password (requires authentication)
  */
-router.post('/change-password', async (req: Request, res: Response) => {
+router.post('/change-password', authenticate, async (req: Request, res: Response) => {
   try {
-    // TODO: Add authentication middleware to get userId from token
-    const userId = req.body.userId; // Temporary - will be replaced with auth middleware
-
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          timestamp: new Date().toISOString()
-        }
-      });
-      return;
-    }
+    const userId = req.user!.id;
 
     // Validate request body
     const validation = changePasswordSchema.safeParse(req.body);
@@ -385,6 +378,226 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Password reset endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An internal server error occurred',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Logout user by revoking refresh token
+ */
+router.post('/logout', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Refresh token is required',
+          timestamp: new Date().toISOString()
+        }
+      });
+      return;
+    }
+
+    // Logout user
+    const result = await authService.logout(refreshToken);
+
+    if (!result.success) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'LOGOUT_FAILED',
+          message: result.errors?.join(', ') || 'Logout failed',
+          timestamp: new Date().toISOString()
+        }
+      });
+      return;
+    }
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      data: {
+        message: 'Logout successful'
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Logout endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An internal server error occurred',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/auth/logout-all
+ * Logout from all devices by revoking all refresh tokens
+ */
+router.post('/logout-all', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    // Logout from all devices
+    const result = await authService.logoutAll(userId);
+
+    if (!result.success) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'LOGOUT_ALL_FAILED',
+          message: result.errors?.join(', ') || 'Logout from all devices failed',
+          timestamp: new Date().toISOString()
+        }
+      });
+      return;
+    }
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      data: {
+        message: 'Logged out from all devices successfully',
+        revokedCount: result.revokedCount
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Logout all endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An internal server error occurred',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/auth/refresh
+ * Refresh access token using refresh token
+ */
+router.post('/refresh', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Refresh token is required',
+          timestamp: new Date().toISOString()
+        }
+      });
+      return;
+    }
+
+    // Refresh access token
+    const result = await authService.refreshToken(refreshToken);
+
+    if (!result.success) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: 'TOKEN_REFRESH_FAILED',
+          message: result.errors?.join(', ') || 'Token refresh failed',
+          timestamp: new Date().toISOString()
+        }
+      });
+      return;
+    }
+
+    // Return success response with new access token
+    res.status(200).json({
+      success: true,
+      data: {
+        accessToken: result.accessToken,
+        expiresIn: result.expiresIn,
+        message: 'Token refreshed successfully'
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Token refresh endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An internal server error occurred',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/auth/validate
+ * Validate access token and return user info
+ */
+router.post('/validate', async (req: Request, res: Response) => {
+  try {
+    const { accessToken } = req.body;
+
+    if (!accessToken) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Access token is required',
+          timestamp: new Date().toISOString()
+        }
+      });
+      return;
+    }
+
+    // Validate access token
+    const result = await authService.validateToken(accessToken);
+
+    if (!result.success) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: 'TOKEN_VALIDATION_FAILED',
+          message: result.errors?.join(', ') || 'Token validation failed',
+          timestamp: new Date().toISOString()
+        }
+      });
+      return;
+    }
+
+    // Return success response with user info
+    res.status(200).json({
+      success: true,
+      data: {
+        user: result.user,
+        message: 'Token is valid'
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Token validation endpoint error:', error);
     res.status(500).json({
       success: false,
       error: {

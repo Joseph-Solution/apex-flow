@@ -64,6 +64,10 @@ app.get('/api', (_req, res) => {
       auth: {
         register: 'POST /api/auth/register',
         login: 'POST /api/auth/login',
+        logout: 'POST /api/auth/logout',
+        logoutAll: 'POST /api/auth/logout-all',
+        refresh: 'POST /api/auth/refresh',
+        validate: 'POST /api/auth/validate',
         changePassword: 'POST /api/auth/change-password',
         verifyEmail: 'POST /api/auth/verify-email',
         requestPasswordReset: 'POST /api/auth/request-password-reset',
