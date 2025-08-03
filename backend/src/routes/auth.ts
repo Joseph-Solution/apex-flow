@@ -2,6 +2,13 @@ import { Router, Request, Response } from 'express';
 import { AuthService } from '../services/AuthService';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { 
+  authRateLimit,
+  loginRateLimit,
+  passwordResetRateLimit,
+  registrationRateLimit,
+  tokenRefreshRateLimit
+} from '../middleware/rateLimiting';
+import { 
   registerUserSchema, 
   loginUserSchema, 
   changePasswordSchema,
@@ -17,7 +24,7 @@ const authService = new AuthService();
  * POST /api/auth/register
  * Register a new user
  */
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', registrationRateLimit, async (req: Request, res: Response) => {
   try {
     // Validate request body
     const validation = registerUserSchema.safeParse(req.body);
@@ -79,7 +86,7 @@ router.post('/register', async (req: Request, res: Response) => {
  * POST /api/auth/login
  * Login user with JWT tokens
  */
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginRateLimit, async (req: Request, res: Response) => {
   try {
     // Validate request body
     const validation = loginUserSchema.safeParse(req.body);
@@ -146,7 +153,7 @@ router.post('/login', async (req: Request, res: Response) => {
  * POST /api/auth/change-password
  * Change user password (requires authentication)
  */
-router.post('/change-password', authenticate, async (req: Request, res: Response) => {
+router.post('/change-password', authRateLimit, authenticate, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
 
@@ -209,7 +216,7 @@ router.post('/change-password', authenticate, async (req: Request, res: Response
  * POST /api/auth/verify-email
  * Verify user email address
  */
-router.post('/verify-email', async (req: Request, res: Response) => {
+router.post('/verify-email', authRateLimit, async (req: Request, res: Response) => {
   try {
     // Validate request body
     const validation = emailVerificationSchema.safeParse(req.body);
@@ -271,7 +278,7 @@ router.post('/verify-email', async (req: Request, res: Response) => {
  * POST /api/auth/request-password-reset
  * Request password reset
  */
-router.post('/request-password-reset', async (req: Request, res: Response) => {
+router.post('/request-password-reset', passwordResetRateLimit, async (req: Request, res: Response) => {
   try {
     // Validate request body
     const validation = passwordResetRequestSchema.safeParse(req.body);
@@ -332,7 +339,7 @@ router.post('/request-password-reset', async (req: Request, res: Response) => {
  * POST /api/auth/reset-password
  * Reset password with token
  */
-router.post('/reset-password', async (req: Request, res: Response) => {
+router.post('/reset-password', passwordResetRateLimit, async (req: Request, res: Response) => {
   try {
     // Validate request body
     const validation = passwordResetSchema.safeParse(req.body);
@@ -496,7 +503,7 @@ router.post('/logout-all', authenticate, async (req: Request, res: Response) => 
  * POST /api/auth/refresh
  * Refresh access token using refresh token
  */
-router.post('/refresh', async (req: Request, res: Response) => {
+router.post('/refresh', tokenRefreshRateLimit, async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
 
@@ -555,7 +562,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
  * POST /api/auth/validate
  * Validate access token and return user info
  */
-router.post('/validate', async (req: Request, res: Response) => {
+router.post('/validate', authRateLimit, async (req: Request, res: Response) => {
   try {
     const { accessToken } = req.body;
 
