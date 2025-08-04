@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './db/connection';
 import authRoutes from './routes/auth';
+import profileRoutes from './routes/profile';
 
 // Load environment variables
 dotenv.config();
@@ -87,6 +88,7 @@ app.get('/health', async (_req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 // API info endpoint
 app.get('/api', (_req, res) => {
@@ -107,6 +109,15 @@ app.get('/api', (_req, res) => {
         verifyEmail: 'POST /api/auth/verify-email',
         requestPasswordReset: 'POST /api/auth/request-password-reset',
         resetPassword: 'POST /api/auth/reset-password'
+      },
+      profile: {
+        getProfile: 'GET /api/profile',
+        updateProfile: 'PUT /api/profile',
+        getStats: 'GET /api/profile/stats',
+        updateAvatar: 'PUT /api/profile/avatar',
+        resetAvatar: 'POST /api/profile/avatar/reset',
+        updatePreferences: 'PUT /api/profile/preferences',
+        getUnlockedItems: 'GET /api/profile/unlocked-items'
       }
     }
   });
