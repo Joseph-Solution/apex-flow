@@ -9,6 +9,7 @@ import { checkDatabaseConnection } from './db/connection';
 import authRoutes from './routes/auth';
 import profileRoutes from './routes/profile';
 import taskRoutes from './routes/tasks';
+import habitRoutes from './routes/habits';
 
 // Load environment variables
 dotenv.config();
@@ -91,6 +92,7 @@ app.get('/health', async (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/habits', habitRoutes);
 
 // API info endpoint
 app.get('/api', (_req, res) => {
@@ -131,6 +133,19 @@ app.get('/api', (_req, res) => {
         getTaskStats: 'GET /api/tasks/stats',
         getOverdueTasks: 'GET /api/tasks/overdue',
         getTasksByStatus: 'GET /api/tasks/status/:status'
+      },
+      habits: {
+        getHabits: 'GET /api/habits',
+        createHabit: 'POST /api/habits',
+        getHabit: 'GET /api/habits/:id',
+        updateHabit: 'PUT /api/habits/:id',
+        deleteHabit: 'DELETE /api/habits/:id',
+        completeHabit: 'PATCH /api/habits/:id/complete',
+        pauseHabit: 'PATCH /api/habits/:id/pause',
+        getHabitCompletions: 'GET /api/habits/:id/completions',
+        getHabitAnalytics: 'GET /api/habits/:id/analytics',
+        getHabitStats: 'GET /api/habits/stats',
+        shouldCompleteHabit: 'GET /api/habits/:id/should-complete'
       }
     }
   });
