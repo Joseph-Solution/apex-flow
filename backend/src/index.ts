@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './db/connection';
 import authRoutes from './routes/auth';
 import profileRoutes from './routes/profile';
+import taskRoutes from './routes/tasks';
 
 // Load environment variables
 dotenv.config();
@@ -89,6 +90,7 @@ app.get('/health', async (_req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // API info endpoint
 app.get('/api', (_req, res) => {
@@ -118,6 +120,17 @@ app.get('/api', (_req, res) => {
         resetAvatar: 'POST /api/profile/avatar/reset',
         updatePreferences: 'PUT /api/profile/preferences',
         getUnlockedItems: 'GET /api/profile/unlocked-items'
+      },
+      tasks: {
+        getTasks: 'GET /api/tasks',
+        createTask: 'POST /api/tasks',
+        getTask: 'GET /api/tasks/:id',
+        updateTask: 'PUT /api/tasks/:id',
+        deleteTask: 'DELETE /api/tasks/:id',
+        completeTask: 'PATCH /api/tasks/:id/complete',
+        getTaskStats: 'GET /api/tasks/stats',
+        getOverdueTasks: 'GET /api/tasks/overdue',
+        getTasksByStatus: 'GET /api/tasks/status/:status'
       }
     }
   });
