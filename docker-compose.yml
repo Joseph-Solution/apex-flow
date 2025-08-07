@@ -1,36 +1,10 @@
+# FILE LOCATION: /docker-compose.yml (at the root of your monorepo)
+#
+# This docker-compose file is optimized for team development.
+# It uses the "Smart Sync" command to automatically run 'bun install'
+# only when the lockfile has changed, making it fast and efficient.
+
 services:
-  # Backend dependency sync
-  backend-deps:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        UID: ${UID}
-        GID: ${GID}
-        UNAME: ${UNAME}
-        GNAME: ${GNAME}
-    container_name: apex-flow-backend-deps
-    volumes:
-      - backend_node_modules:/tmp/sync
-    command:
-      ["sh", "-c", "cp -r /app/node_modules/* /tmp/sync/ 2>/dev/null || true"]
-
-  # Frontend dependency sync
-  frontend-deps:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        UID: ${UID}
-        GID: ${GID}
-        UNAME: ${UNAME}
-        GNAME: ${GNAME}
-    container_name: apex-flow-frontend-deps
-    volumes:
-      - frontend_node_modules:/tmp/sync
-    command:
-      ["sh", "-c", "cp -r /app/node_modules/* /tmp/sync/ 2>/dev/null || true"]
-
   # PostgreSQL Database
   database:
     image: postgres:16-alpine3.22
@@ -40,7 +14,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${DB_PORT}:5432" # local_port:container_port
+      - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -52,19 +26,31 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: ../docker/dev/Dockerfile # Path to the shared Dockerfile
       args:
         UID: ${UID}
         GID: ${GID}
         UNAME: ${UNAME}
         GNAME: ${GNAME}
     container_name: apex-flow-backend
-    command: ["./scripts/startup.sh", "bun", "--bun", "run", "dev"]
+    command: >
+      sh -c "
+        if ! cmp -s bun.lockb node_modules/.install-lock.b 2>/dev/null; then
+          echo 'Backend lockfile has changed, running bun install...' &&
+          bun install &&
+          cp bun.lockb node_modules/.install-lock.b;
+        else
+          echo 'Backend dependencies are up to date.';
+        fi &&
+        bun --bun run dev
+      "
     environment:
       - NODE_ENV=${NODE_ENV}
       - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRY=${JWT_ACCESS_EXPIRY}
+      - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY}
       - PORT=${BACKEND_PORT}
       - BCRYPT_ROUNDS=${BCRYPT_ROUNDS}
       - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
@@ -77,7 +63,6 @@ services:
       - backend_node_modules:/app/node_modules
     depends_on:
       - database
-      - backend-deps
     networks:
       - apex-network
     restart: unless-stopped
@@ -87,14 +72,24 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: ../docker/dev/Dockerfile # Path to the shared Dockerfile
       args:
         UID: ${UID}
         GID: ${GID}
         UNAME: ${UNAME}
         GNAME: ${GNAME}
     container_name: apex-flow-frontend
-    command: ["bun", "--bun", "next", "dev"]
+    command: >
+      sh -c "
+        if ! cmp -s bun.lockb node_modules/.install-lock.b 2>/dev/null; then
+          echo 'Frontend lockfile has changed, running bun install...' &&
+          bun install &&
+          cp bun.lockb node_modules/.install-lock.b;
+        else
+          echo 'Frontend dependencies are up to date.';
+        fi &&
+        bun --bun next dev -p ${FRONTEND_PORT}
+      "
     environment:
       - NODE_ENV=${NODE_ENV}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
@@ -107,7 +102,6 @@ services:
       - frontend_next_cache:/app/.next
     depends_on:
       - backend
-      - frontend-deps
     networks:
       - apex-network
     restart: unless-stopped
