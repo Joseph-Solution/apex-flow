@@ -1,0 +1,133 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "button": {
+    "primary": {
+      "background": {
+        "default": {
+          "$value": "{color.background.interactive}",
+          "$type": "color"
+        },
+        "hover": {
+          "$value": "{color.background.interactive-hover}",
+          "$type": "color"
+        }
+      },
+      "text": {
+        "$value": "{color.text.inverse}",
+        "$type": "color"
+      },
+      "padding": {
+        "x": {
+          "$value": "{spacing.component.lg}",
+          "$type": "dimension"
+        },
+        "y": {
+          "$value": "{spacing.component.md}",
+          "$type": "dimension"
+        }
+      },
+      "borderRadius": {
+        "$value": "{borderRadius.interactive}",
+        "$type": "dimension"
+      }
+    },
+    "secondary": {
+      "background": {
+        "default": {
+          "$value": "{color.background.secondary}",
+          "$type": "color"
+        },
+        "hover": {
+          "$value": "{color.primitive.gray.100}",
+          "$type": "color"
+        }
+      },
+      "text": {
+        "$value": "{color.text.primary}",
+        "$type": "color"
+      },
+      "border": {
+        "$value": "{color.border.default}",
+        "$type": "color"
+      }
+    }
+  },
+  "input": {
+    "background": {
+      "$value": "{color.background.primary}",
+      "$type": "color"
+    },
+    "text": {
+      "$value": "{color.text.primary}",
+      "$type": "color"
+    },
+    "border": {
+      "default": {
+        "$value": "{color.border.default}",
+        "$type": "color"
+      },
+      "focus": {
+        "$value": "{color.border.focus}",
+        "$type": "color"
+      }
+    },
+    "padding": {
+      "x": {
+        "$value": "{spacing.component.md}",
+        "$type": "dimension"
+      },
+      "y": {
+        "$value": "{spacing.component.sm}",
+        "$type": "dimension"
+      }
+    },
+    "borderRadius": {
+      "$value": "{borderRadius.input}",
+      "$type": "dimension"
+    }
+  },
+  "card": {
+    "background": {
+      "$value": "{color.background.card}",
+      "$type": "color"
+    },
+    "border": {
+      "$value": "{color.border.default}",
+      "$type": "color"
+    },
+    "padding": {
+      "$value": "{spacing.layout.md}",
+      "$type": "dimension"
+    },
+    "borderRadius": {
+      "$value": "{borderRadius.card}",
+      "$type": "dimension"
+    },
+    "shadow": {
+      "$value": "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+      "$type": "shadow"
+    }
+  },
+  "task": {
+    "item": {
+      "padding": {
+        "$value": "{spacing.component.md}",
+        "$type": "dimension"
+      },
+      "gap": {
+        "$value": "{spacing.component.sm}",
+        "$type": "dimension"
+      },
+      "borderRadius": {
+        "$value": "{borderRadius.interactive}",
+        "$type": "dimension"
+      }
+    },
+    "checkbox": {
+      "size": {
+        "$value": "20px",
+        "$type": "dimension"
+      }
+    }
+  }
+}

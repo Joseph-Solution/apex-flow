@@ -25,11 +25,12 @@ coverage
 .vercel
 
 # Build Outputs
-**/.next/
+**/next/
 **/.next/
 **/out/
 **/build/
 **/dist/
+**/storybook-static/
 web/next-env.d.ts
 
 # Debug

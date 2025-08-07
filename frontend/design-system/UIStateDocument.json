@@ -1,0 +1,123 @@
+{
+  "$schema": "https://apex-flow.com/schemas/ui-state-document.json",
+  "version": "1.0.0",
+  "designTokens": [
+    "./tokens/primitive.json",
+    "./tokens/semantic.json",
+    "./tokens/component.json"
+  ],
+  "componentManifest": "./storybook-static/index.json",
+  "dataSchema": "./schemas/data-schema.json",
+  "data": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Complete project setup",
+        "description": "Set up the initial project structure and dependencies",
+        "completed": false,
+        "createdAt": "2024-01-15T10:00:00Z",
+        "updatedAt": "2024-01-15T10:00:00Z",
+        "completedAt": null
+      },
+      {
+        "id": "2",
+        "title": "Design system implementation",
+        "description": "Implement the design system with tokens and components",
+        "completed": true,
+        "createdAt": "2024-01-15T09:00:00Z",
+        "updatedAt": "2024-01-15T11:30:00Z",
+        "completedAt": "2024-01-15T11:30:00Z"
+      }
+    ],
+    "ui": {
+      "isLoading": false,
+      "error": null,
+      "newTaskTitle": "",
+      "editingTaskId": null,
+      "filter": "all"
+    }
+  },
+  "uiTree": {
+    "id": "root",
+    "layout": "VerticalStack",
+    "props": {
+      "className": "min-h-screen p-8",
+      "style": {
+        "backgroundColor": "{color.background.primary}",
+        "gap": "{spacing.layout.lg}"
+      }
+    },
+    "children": [
+      {
+        "id": "header",
+        "component": "TaskHeader",
+        "props": {
+          "title": "Task Management",
+          "subtitle": "Organize your tasks efficiently"
+        }
+      },
+      {
+        "id": "task-form-container",
+        "layout": "VerticalStack",
+        "props": {
+          "style": {
+            "gap": "{spacing.layout.sm}"
+          }
+        },
+        "children": [
+          {
+            "id": "task-form",
+            "component": "TaskForm",
+            "props": {
+              "value": "$.ui.newTaskTitle",
+              "placeholder": "Add a new task...",
+              "onSubmit": "handleAddTask",
+              "isLoading": "$.ui.isLoading"
+            }
+          }
+        ]
+      },
+      {
+        "id": "task-list-container",
+        "layout": "VerticalStack",
+        "props": {
+          "style": {
+            "gap": "{spacing.layout.sm}"
+          }
+        },
+        "children": [
+          {
+            "id": "task-filter",
+            "component": "TaskFilter",
+            "props": {
+              "currentFilter": "$.ui.filter",
+              "onFilterChange": "handleFilterChange"
+            }
+          },
+          {
+            "id": "task-list",
+            "component": "TaskList",
+            "props": {
+              "tasks": "$.tasks",
+              "filter": "$.ui.filter",
+              "editingTaskId": "$.ui.editingTaskId",
+              "onToggleComplete": "handleToggleComplete",
+              "onEdit": "handleEditTask",
+              "onDelete": "handleDeleteTask",
+              "onSave": "handleSaveTask",
+              "onCancel": "handleCancelEdit"
+            }
+          }
+        ]
+      },
+      {
+        "id": "error-message",
+        "component": "ErrorMessage",
+        "props": {
+          "message": "$.ui.error"
+        },
+        "visibleWhen": "$.ui.error !== null"
+      }
+    ]
+  }
+}

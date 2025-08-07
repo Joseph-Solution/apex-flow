@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://apex-flow.com/schemas/task-management-data.json",
+  "title": "Task Management Data Schema",
+  "description": "Schema for task management application state",
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Task"
+      }
+    },
+    "ui": {
+      "$ref": "#/definitions/UIState"
+    }
+  },
+  "required": ["tasks", "ui"],
+  "definitions": {
+    "Task": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the task"
+        },
+        "title": {
+          "type": "string",
+          "description": "Task title",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional task description",
+          "maxLength": 1000
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the task is completed"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Task creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Task last update timestamp"
+        },
+        "completedAt": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Task completion timestamp"
+        }
+      },
+      "required": ["id", "title", "completed", "createdAt", "updatedAt"],
+      "additionalProperties": false
+    },
+    "UIState": {
+      "type": "object",
+      "properties": {
+        "isLoading": {
+          "type": "boolean",
+          "description": "Whether the UI is in a loading state"
+        },
+        "error": {
+          "type": ["string", "null"],
+          "description": "Current error message, if any"
+        },
+        "newTaskTitle": {
+          "type": "string",
+          "description": "Current value of the new task input field"
+        },
+        "editingTaskId": {
+          "type": ["string", "null"],
+          "description": "ID of the task currently being edited"
+        },
+        "filter": {
+          "type": "string",
+          "enum": ["all", "active", "completed"],
+          "description": "Current task filter"
+        }
+      },
+      "required": ["isLoading", "error", "newTaskTitle", "editingTaskId", "filter"],
+      "additionalProperties": false
+    }
+  }
+}
