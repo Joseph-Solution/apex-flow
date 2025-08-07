@@ -23,20 +23,20 @@ ENV HOME /home/${UNAME}
 # Install bun globally
 RUN npm install -g bun
 
-# Set working directory
+# Set working directory and ensure proper ownership
 WORKDIR /app
+RUN chown -R ${UID}:${GID} /app
+
+# Switch to the non-root user for security
+USER ${UID}:${GID}
 
 # Copy package files first to leverage Docker cache
 COPY --chown=${UID}:${GID} package*.json bun.lockb* ./
 
-# Install dependencies. This layer is only rebuilt if package files change.
-RUN bun install
-
 # Copy the rest of the source code
 COPY --chown=${UID}:${GID} . .
 
-# Switch to the non-root user for security
-USER ${UID}:${GID}
+# Note: Dependencies will be installed at runtime by the smart sync script
 
 # Default command to run. This will be overridden by docker-compose,
 # but it's good practice to have a default.

@@ -38,11 +38,11 @@ services:
         if ! cmp -s bun.lockb node_modules/.install-lock.b 2>/dev/null; then
           echo 'Backend lockfile has changed, running bun install...' &&
           bun install &&
-          cp bun.lockb node_modules/.install-lock.b;
+          if [ -f bun.lockb ]; then cp bun.lockb node_modules/.install-lock.b; fi;
         else
           echo 'Backend dependencies are up to date.';
         fi &&
-        bun --bun run dev
+        bun run dev
       "
     environment:
       - NODE_ENV=${NODE_ENV}
@@ -84,11 +84,11 @@ services:
         if ! cmp -s bun.lockb node_modules/.install-lock.b 2>/dev/null; then
           echo 'Frontend lockfile has changed, running bun install...' &&
           bun install &&
-          cp bun.lockb node_modules/.install-lock.b;
+          if [ -f bun.lockb ]; then cp bun.lockb node_modules/.install-lock.b; fi;
         else
           echo 'Frontend dependencies are up to date.';
         fi &&
-        bun --bun next dev -p ${FRONTEND_PORT}
+        bun run dev
       "
     environment:
       - NODE_ENV=${NODE_ENV}
